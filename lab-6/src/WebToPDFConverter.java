@@ -7,7 +7,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 public class WebToPDFConverter {
-    final String outputDir;
+    String outputDir;
     private final String chromePath;
     
     public WebToPDFConverter(String outputDir, String chromePath) {

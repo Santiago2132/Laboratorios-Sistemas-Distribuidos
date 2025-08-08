@@ -22,11 +22,13 @@ public class BenchmarkRunner {
     private final WebToPDFConverter converter;
     private final List<BenchmarkResult> results;
     private final String reportDir;
+    private final String baseOutputDir;
     
     public BenchmarkRunner(String chromePath, String outputDir) {
+        this.baseOutputDir = outputDir;
         this.converter = new WebToPDFConverter(outputDir, chromePath);
         this.results = new ArrayList<>();
-        this.reportDir = "./benchmark_reports";
+        this.reportDir = "/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-6/benchmark_reports";
         createReportDirectory();
     }
     
@@ -38,15 +40,34 @@ public class BenchmarkRunner {
         }
     }
     
-    public void runBenchmark() {
-        System.out.println("Iniciando benchmark con 32 URLs...");
-        List<String> urls = Arrays.asList(TEST_URLS);
+    private void createThreadOutputDirectory(int threads) {
+        try {
+            String threadDir = baseOutputDir + "/" + threads + "hilo";
+            Files.createDirectories(Paths.get(threadDir));
+            // Actualizar el directorio de salida del converter
+            converter.outputDir = threadDir;
+        } catch (IOException e) {
+            throw new RuntimeException("No se pudo crear directorio para " + threads + " hilos", e);
+        }
+    }
+    
+    public void runBenchmark(int urlCount) {
+        if (urlCount <= 0 || urlCount > TEST_URLS.length) {
+            throw new IllegalArgumentException("Número de URLs debe ser entre 1 y " + TEST_URLS.length);
+        }
         
+        System.out.println("Iniciando benchmark con " + urlCount + " URLs...");
+        List<String> urls = Arrays.asList(TEST_URLS).subList(0, urlCount);
+        
+        // Probar hilos de 1 a 16, incrementando de 1 en 1
         for (int threads = 1; threads <= 16; threads++) {
-            System.out.printf("Ejecutando prueba con %d hilos...\n", threads);
+            System.out.printf("Ejecutando prueba con %d hilo(s)...\n", threads);
             
-            // Limpiar directorio de salida
-            cleanOutputDirectory();
+            // Crear directorio específico para esta configuración de hilos
+            createThreadOutputDirectory(threads);
+            
+            // Limpiar directorio de salida antes de cada prueba
+            cleanOutputDirectory(threads);
             
             // Ejecutar múltiples iteraciones para obtener promedio
             long totalTime = 0;
@@ -56,8 +77,10 @@ public class BenchmarkRunner {
                 WebToPDFConverter.ConversionResult result = converter.convertUrls(urls, threads);
                 totalTime += result.executionTimeMs;
                 
-                // Limpiar entre iteraciones
-                cleanOutputDirectory();
+                // Limpiar entre iteraciones (excepto la última)
+                if (i < iterations - 1) {
+                    cleanOutputDirectory(threads);
+                }
                 
                 // Pausa entre iteraciones
                 try {
@@ -76,12 +99,13 @@ public class BenchmarkRunner {
         generateReport();
     }
     
-    private void cleanOutputDirectory() {
+    private void cleanOutputDirectory(int threads) {
         try {
-            Path outputPath = Paths.get(converter.outputDir);
+            Path outputPath = Paths.get(baseOutputDir + "/" + threads + "hilo");
             if (Files.exists(outputPath)) {
                 Files.walk(outputPath)
                     .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".pdf"))
                     .forEach(path -> {
                         try {
                             Files.delete(path);
@@ -97,13 +121,23 @@ public class BenchmarkRunner {
     
     private void generateReport() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String reportFile = reportDir + "/benchmark_report_" + timestamp + ".txt";
+        String reportFileName = "benchmark_report_" + timestamp + ".txt";
+        String reportFile = reportDir + "/" + reportFileName;
+        
+        // Asegurar que el nombre sea único
+        int counter = 1;
+        while (Files.exists(Paths.get(reportFile))) {
+            reportFileName = "benchmark_report_" + timestamp + "_" + counter + ".txt";
+            reportFile = reportDir + "/" + reportFileName;
+            counter++;
+        }
         
         try (PrintWriter writer = new PrintWriter(new FileWriter(reportFile))) {
             writer.println("=== INFORME DE BENCHMARK - WEB TO PDF CONVERTER ===");
             writer.println("Fecha: " + LocalDateTime.now());
-            writer.println("URLs procesadas: " + TEST_URLS.length);
+            writer.println("URLs procesadas: " + results.get(0).urlCount);
             writer.println("Iteraciones por prueba: 3 (promedio)");
+            writer.println("Hilos probados: 1 a 16");
             writer.println();
             
             // Información del sistema
@@ -136,7 +170,7 @@ public class BenchmarkRunner {
                 .min(Comparator.comparing(r -> r.avgExecutionTimeMs))
                 .orElse(results.get(0));
             
-            writer.println("Configuración más rápida: " + fastest.threadCount + " hilos");
+            writer.println("Configuración más rápida: " + fastest.threadCount + " hilo(s)");
             writer.println("Tiempo más rápido: " + fastest.avgExecutionTimeMs + "ms");
             writer.println("Mejora máxima: " + String.format("%.2fx", (double) baselineTime / fastest.avgExecutionTimeMs));
             
@@ -188,23 +222,60 @@ public class BenchmarkRunner {
         }
     }
     
+    private static String findChromePath() {
+        String[] possiblePaths = {
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable", 
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+            "/opt/google/chrome/chrome",
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+        };
+        
+        for (String path : possiblePaths) {
+            if (Files.exists(Paths.get(path))) {
+                System.out.println("Chrome encontrado en: " + path);
+                return path;
+            }
+        }
+        
+        System.err.println("Chrome no encontrado en ubicaciones comunes");
+        System.exit(1);
+        return null;
+    }
+    
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         
-        System.out.print("Ruta de Chrome [/usr/bin/google-chrome]: ");
-        String chromePath = scanner.nextLine().trim();
-        if (chromePath.isEmpty()) {
-            chromePath = "/usr/bin/google-chrome";
-        }
+        String chromePath = findChromePath();
         
-        System.out.print("Directorio de salida [./benchmark_output]: ");
+        System.out.print("Directorio de salida [/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-6/benchmark_output]: ");
         String outputDir = scanner.nextLine().trim();
         if (outputDir.isEmpty()) {
-            outputDir = "./benchmark_output";
+            outputDir = "/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-6/benchmark_output";
+        }
+        
+        System.out.print("¿Con cuántos links hacer el benchmark? (1-" + TEST_URLS.length + ") [" + TEST_URLS.length + "]: ");
+        String urlCountInput = scanner.nextLine().trim();
+        int urlCount = TEST_URLS.length;
+        
+        if (!urlCountInput.isEmpty()) {
+            try {
+                urlCount = Integer.parseInt(urlCountInput);
+                if (urlCount <= 0 || urlCount > TEST_URLS.length) {
+                    System.err.println("Número inválido, usando " + TEST_URLS.length + " URLs");
+                    urlCount = TEST_URLS.length;
+                }
+            } catch (NumberFormatException e) {
+                System.err.println("Número inválido, usando " + TEST_URLS.length + " URLs");
+                urlCount = TEST_URLS.length;
+            }
         }
         
         BenchmarkRunner runner = new BenchmarkRunner(chromePath, outputDir);
-        runner.runBenchmark();
+        runner.runBenchmark(urlCount);
         
         scanner.close();
     }
