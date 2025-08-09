@@ -1,0 +1,62 @@
+=== INFORME DE BENCHMARK - WEB TO PDF CONVERTER ===
+Fecha: 2025-08-08T23:22:05.309805141
+URLs procesadas: 32
+Iteraciones por prueba: 4 (descartando primera)
+Hilos probados: 1 a 16
+
+=== INFORMACIÓN DEL SISTEMA ===
+Java Version: 21.0.8
+OS: Linux 6.14.0-27-generic
+Procesadores disponibles: 16
+Memoria máxima JVM: 5916 MB
+
+=== RESULTADOS ===
+Hilos    Tiempo (ms)     URLs/seg        Speedup         Eficiencia     
+------------------------------------------------------------------------
+1        151811          0,21            1,00           x 100,00         %
+2        91687           0,35            1,66           x 82,79          %
+3        67622           0,47            2,24           x 74,83          %
+4        58388           0,55            2,60           x 65,00          %
+5        58167           0,55            2,61           x 52,20          %
+6        54285           0,59            2,80           x 46,61          %
+7        60817           0,53            2,50           x 35,66          %
+8        56437           0,57            2,69           x 33,62          %
+9        61026           0,52            2,49           x 27,64          %
+10       58941           0,54            2,58           x 25,76          %
+11       61541           0,52            2,47           x 22,43          %
+12       59396           0,54            2,56           x 21,30          %
+13       56971           0,56            2,66           x 20,50          %
+14       59868           0,53            2,54           x 18,11          %
+15       53597           0,60            2,83           x 18,88          %
+16       53903           0,59            2,82           x 17,60          %
+
+=== ANÁLISIS ===
+Configuración más rápida: 15 hilo(s)
+Tiempo más rápido: 53597ms
+Mejora máxima: 2,83x
+
+Configuración más eficiente: 1 hilo(s)
+Eficiencia máxima: 100,00%
+
+=== ANÁLISIS DE SATURACIÓN ===
+Punto de saturación estimado: 1 hilo(s)
+Recomendación: Usar entre 1 y 3 hilos para rendimiento óptimo
+
+=== DATOS PARA GRÁFICO (CSV) ===
+Hilos,TiempoMs,URLsPorSegundo,Speedup,Eficiencia
+1,151811,0,21,1,00,1,0000
+2,91687,0,35,1,66,0,8279
+3,67622,0,47,2,24,0,7483
+4,58388,0,55,2,60,0,6500
+5,58167,0,55,2,61,0,5220
+6,54285,0,59,2,80,0,4661
+7,60817,0,53,2,50,0,3566
+8,56437,0,57,2,69,0,3362
+9,61026,0,52,2,49,0,2764
+10,58941,0,54,2,58,0,2576
+11,61541,0,52,2,47,0,2243
+12,59396,0,54,2,56,0,2130
+13,56971,0,56,2,66,0,2050
+14,59868,0,53,2,54,0,1811
+15,53597,0,60,2,83,0,1888
+16,53903,0,59,2,82,0,1760

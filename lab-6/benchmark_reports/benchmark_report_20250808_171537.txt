@@ -1,0 +1,55 @@
+=== INFORME DE BENCHMARK - WEB TO PDF CONVERTER ===
+Fecha: 2025-08-08T17:15:37.618203500
+URLs procesadas: 1
+Iteraciones por prueba: 3 (promedio)
+Hilos probados: 1 a 16
+
+=== INFORMACIÓN DEL SISTEMA ===
+Java Version: 21.0.8
+OS: Linux 6.14.0-27-generic
+Procesadores disponibles: 16
+Memoria máxima JVM: 5916 MB
+
+=== RESULTADOS ===
+Hilos    Tiempo (ms)     URLs/seg        Speedup        
+--------------------------------------------------------
+1        2364            0,42            1,00           x
+2        2561            0,39            0,92           x
+3        2301            0,43            1,03           x
+4        2435            0,41            0,97           x
+5        2353            0,42            1,00           x
+6        2214            0,45            1,07           x
+7        2500            0,40            0,95           x
+8        2350            0,43            1,01           x
+9        2442            0,41            0,97           x
+10       2633            0,38            0,90           x
+11       2361            0,42            1,00           x
+12       2562            0,39            0,92           x
+13       2826            0,35            0,84           x
+14       2467            0,41            0,96           x
+15       2675            0,37            0,88           x
+16       2654            0,38            0,89           x
+
+=== ANÁLISIS ===
+Configuración más rápida: 6 hilo(s)
+Tiempo más rápido: 2214ms
+Mejora máxima: 1,07x
+
+=== DATOS PARA GRÁFICO (CSV) ===
+Hilos,TiempoMs,URLsPorSegundo
+1,2364,0,42
+2,2561,0,39
+3,2301,0,43
+4,2435,0,41
+5,2353,0,42
+6,2214,0,45
+7,2500,0,40
+8,2350,0,43
+9,2442,0,41
+10,2633,0,38
+11,2361,0,42
+12,2562,0,39
+13,2826,0,35
+14,2467,0,41
+15,2675,0,37
+16,2654,0,38

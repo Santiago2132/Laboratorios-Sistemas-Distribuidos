@@ -3,6 +3,7 @@ import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BenchmarkRunner {
     private static final String[] TEST_URLS = {
@@ -23,12 +24,12 @@ public class BenchmarkRunner {
     private final List<BenchmarkResult> results;
     private final String reportDir;
     private final String baseOutputDir;
-    
     public BenchmarkRunner(String chromePath, String outputDir) {
         this.baseOutputDir = outputDir;
         this.converter = new WebToPDFConverter(outputDir, chromePath);
         this.results = new ArrayList<>();
         this.reportDir = "/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-6/benchmark_reports";
+        new ConcurrentHashMap<>();
         createReportDirectory();
     }
     
@@ -44,7 +45,6 @@ public class BenchmarkRunner {
         try {
             String threadDir = baseOutputDir + "/" + threads + "hilo";
             Files.createDirectories(Paths.get(threadDir));
-            // Actualizar el directorio de salida del converter
             converter.outputDir = threadDir;
         } catch (IOException e) {
             throw new RuntimeException("No se pudo crear directorio para " + threads + " hilos", e);
@@ -59,44 +59,84 @@ public class BenchmarkRunner {
         System.out.println("Iniciando benchmark con " + urlCount + " URLs...");
         List<String> urls = Arrays.asList(TEST_URLS).subList(0, urlCount);
         
+        // Warmup del sistema con 1 hilo
+        performWarmup(urls);
+        
         // Probar hilos de 1 a 16, incrementando de 1 en 1
         for (int threads = 1; threads <= 16; threads++) {
             System.out.printf("Ejecutando prueba con %d hilo(s)...\n", threads);
             
-            // Crear directorio específico para esta configuración de hilos
             createThreadOutputDirectory(threads);
-            
-            // Limpiar directorio de salida antes de cada prueba
             cleanOutputDirectory(threads);
             
-            // Ejecutar múltiples iteraciones para obtener promedio
+            // Múltiples iteraciones con pausa para estabilización
             long totalTime = 0;
-            int iterations = 3;
+            int validIterations = 0;
+            int maxIterations = 5;
             
-            for (int i = 0; i < iterations; i++) {
+            for (int i = 0; i < maxIterations; i++) {
+                // Pausa antes de cada iteración para estabilizar el sistema
+                if (i > 0) {
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                
+                // Limpiar directorio antes de cada iteración
+                cleanOutputDirectory(threads);
+                
+                // Forzar garbage collection antes de la medición
+                System.gc();
+                Thread.yield();
+                
                 WebToPDFConverter.ConversionResult result = converter.convertUrls(urls, threads);
-                totalTime += result.executionTimeMs;
                 
-                // Limpiar entre iteraciones (excepto la última)
-                if (i < iterations - 1) {
-                    cleanOutputDirectory(threads);
+                // Descartar primeras iteraciones si son outliers
+                if (i >= 1) {
+                    totalTime += result.executionTimeMs;
+                    validIterations++;
                 }
                 
-                // Pausa entre iteraciones
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+                System.out.printf("  Iteración %d: %dms\n", i + 1, result.executionTimeMs);
             }
             
-            long avgTime = totalTime / iterations;
+            long avgTime = validIterations > 0 ? totalTime / validIterations : 0;
             results.add(new BenchmarkResult(threads, avgTime, urls.size()));
-            System.out.printf("  Tiempo promedio: %dms\n", avgTime);
+            System.out.printf("  Tiempo promedio (%d iteraciones): %dms\n", validIterations, avgTime);
+            
+            // Pausa más larga entre configuraciones de hilos
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
         
         generateReport();
+    }
+    
+    private void performWarmup(List<String> urls) {
+        System.out.println("Realizando warmup del sistema...");
+        createThreadOutputDirectory(1);
+        cleanOutputDirectory(1);
+        
+        // Warmup con subset de URLs
+        List<String> warmupUrls = urls.subList(0, Math.min(3, urls.size()));
+        converter.convertUrls(warmupUrls, 1);
+        
+        cleanOutputDirectory(1);
+        System.out.println("Warmup completado.\n");
+        
+        // Pausa después del warmup
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
     
     private void cleanOutputDirectory(int threads) {
@@ -136,7 +176,7 @@ public class BenchmarkRunner {
             writer.println("=== INFORME DE BENCHMARK - WEB TO PDF CONVERTER ===");
             writer.println("Fecha: " + LocalDateTime.now());
             writer.println("URLs procesadas: " + results.get(0).urlCount);
-            writer.println("Iteraciones por prueba: 3 (promedio)");
+            writer.println("Iteraciones por prueba: 4 (descartando primera)");
             writer.println("Hilos probados: 1 a 16");
             writer.println();
             
@@ -150,17 +190,19 @@ public class BenchmarkRunner {
             
             // Tabla de resultados
             writer.println("=== RESULTADOS ===");
-            writer.printf("%-8s %-15s %-15s %-15s\n", "Hilos", "Tiempo (ms)", "URLs/seg", "Speedup");
-            writer.println("--------------------------------------------------------");
+            writer.printf("%-8s %-15s %-15s %-15s %-15s\n", "Hilos", "Tiempo (ms)", "URLs/seg", "Speedup", "Eficiencia");
+            writer.println("------------------------------------------------------------------------");
             
             long baselineTime = results.get(0).avgExecutionTimeMs;
             
             for (BenchmarkResult result : results) {
                 double urlsPerSecond = (result.urlCount * 1000.0) / result.avgExecutionTimeMs;
                 double speedup = (double) baselineTime / result.avgExecutionTimeMs;
+                double efficiency = speedup / result.threadCount;
                 
-                writer.printf("%-8d %-15d %-15.2f %-15.2fx\n", 
-                    result.threadCount, result.avgExecutionTimeMs, urlsPerSecond, speedup);
+                writer.printf("%-8d %-15d %-15.2f %-15.2fx %-15.2f%%\n", 
+                    result.threadCount, result.avgExecutionTimeMs, urlsPerSecond, 
+                    speedup, efficiency * 100);
             }
             
             writer.println();
@@ -170,11 +212,21 @@ public class BenchmarkRunner {
                 .min(Comparator.comparing(r -> r.avgExecutionTimeMs))
                 .orElse(results.get(0));
             
+            BenchmarkResult mostEfficient = results.stream()
+                .max(Comparator.comparing(r -> ((double) baselineTime / r.avgExecutionTimeMs) / r.threadCount))
+                .orElse(results.get(0));
+            
             writer.println("Configuración más rápida: " + fastest.threadCount + " hilo(s)");
             writer.println("Tiempo más rápido: " + fastest.avgExecutionTimeMs + "ms");
             writer.println("Mejora máxima: " + String.format("%.2fx", (double) baselineTime / fastest.avgExecutionTimeMs));
+            writer.println();
+            writer.println("Configuración más eficiente: " + mostEfficient.threadCount + " hilo(s)");
+            double maxEfficiency = ((double) baselineTime / mostEfficient.avgExecutionTimeMs) / mostEfficient.threadCount;
+            writer.println("Eficiencia máxima: " + String.format("%.2f%%", maxEfficiency * 100));
             
-            // Generar datos para gráfico
+            // Detectar punto de saturación
+            detectSaturationPoint(writer, baselineTime);
+            
             generateChartData(writer);
             
         } catch (IOException e) {
@@ -185,28 +237,55 @@ public class BenchmarkRunner {
         displaySummary();
     }
     
+    private void detectSaturationPoint(PrintWriter writer, long baselineTime) {
+        writer.println();
+        writer.println("=== ANÁLISIS DE SATURACIÓN ===");
+        
+        double bestEfficiency = 0;
+        int saturationPoint = 1;
+        
+        for (BenchmarkResult result : results) {
+            double efficiency = ((double) baselineTime / result.avgExecutionTimeMs) / result.threadCount;
+            if (efficiency > bestEfficiency) {
+                bestEfficiency = efficiency;
+                saturationPoint = result.threadCount;
+            }
+        }
+        
+        writer.println("Punto de saturación estimado: " + saturationPoint + " hilo(s)");
+        writer.println("Recomendación: Usar entre " + Math.max(1, saturationPoint - 1) + 
+                      " y " + Math.min(16, saturationPoint + 2) + " hilos para rendimiento óptimo");
+    }
+    
     private void generateChartData(PrintWriter writer) {
         writer.println();
         writer.println("=== DATOS PARA GRÁFICO (CSV) ===");
-        writer.println("Hilos,TiempoMs,URLsPorSegundo");
+        writer.println("Hilos,TiempoMs,URLsPorSegundo,Speedup,Eficiencia");
+        
+        long baseline = results.get(0).avgExecutionTimeMs;
         
         for (BenchmarkResult result : results) {
             double urlsPerSecond = (result.urlCount * 1000.0) / result.avgExecutionTimeMs;
-            writer.printf("%d,%d,%.2f\n", result.threadCount, result.avgExecutionTimeMs, urlsPerSecond);
+            double speedup = (double) baseline / result.avgExecutionTimeMs;
+            double efficiency = speedup / result.threadCount;
+            
+            writer.printf("%d,%d,%.2f,%.2f,%.4f\n", 
+                result.threadCount, result.avgExecutionTimeMs, urlsPerSecond, speedup, efficiency);
         }
     }
     
     private void displaySummary() {
         System.out.println("\n=== RESUMEN ===");
-        System.out.printf("%-8s %-15s %-15s\n", "Hilos", "Tiempo (ms)", "Speedup");
-        System.out.println("----------------------------------------");
+        System.out.printf("%-8s %-15s %-15s %-15s\n", "Hilos", "Tiempo (ms)", "Speedup", "Eficiencia");
+        System.out.println("--------------------------------------------------------");
         
         long baseline = results.get(0).avgExecutionTimeMs;
         
         for (BenchmarkResult result : results) {
             double speedup = (double) baseline / result.avgExecutionTimeMs;
-            System.out.printf("%-8d %-15d %-15.2fx\n", 
-                result.threadCount, result.avgExecutionTimeMs, speedup);
+            double efficiency = speedup / result.threadCount;
+            System.out.printf("%-8d %-15d %-15.2fx %-15.2f%%\n", 
+                result.threadCount, result.avgExecutionTimeMs, speedup, efficiency * 100);
         }
     }
     

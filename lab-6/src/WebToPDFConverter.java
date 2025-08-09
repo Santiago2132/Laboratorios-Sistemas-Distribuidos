@@ -1,4 +1,3 @@
-
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
@@ -26,37 +25,60 @@ public class WebToPDFConverter {
     
     public ConversionResult convertUrls(List<String> urls, int threadCount) {
         Instant start = Instant.now();
-        List<String> results = new ArrayList<>();
-        List<String> errors = new ArrayList<>();
+        List<String> successfulPdfs = Collections.synchronizedList(new ArrayList<>());
+        List<String> errors = Collections.synchronizedList(new ArrayList<>());
         
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        List<Future<ConversionTask.Result>> futures = new ArrayList<>();
-        
-        for (int i = 0; i < urls.size(); i++) {
-            String url = urls.get(i);
-            String filename = String.format("document_%d.pdf", i + 1);
-            String outputPath = Paths.get(outputDir, filename).toString();
+        try (// Usar ThreadPoolExecutor con configuración explícita
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+            threadCount,
+            threadCount,
+            60L,
+            TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(urls.size() * 2),
+            new ThreadPoolExecutor.CallerRunsPolicy()
+        )) {
+            List<Future<ConversionTask.Result>> futures = new ArrayList<>();
             
-            futures.add(executor.submit(new ConversionTask(url, outputPath, chromePath)));
-        }
-        
-        for (Future<ConversionTask.Result> future : futures) {
-            try {
-                ConversionTask.Result result = future.get();
-                if (result.success) {
-                    results.add(result.outputPath);
-                } else {
-                    errors.add(result.error);
+            for (int i = 0; i < urls.size(); i++) {
+                String url = urls.get(i);
+                String filename = String.format("document_%d.pdf", i + 1);
+                String outputPath = Paths.get(outputDir, filename).toString();
+                
+                futures.add(executor.submit(new ConversionTask(url, outputPath, chromePath)));
+            }
+            
+            // Procesar resultados sin bloquear prematuramente
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    ConversionTask.Result result = futures.get(i).get();
+                    if (result.success) {
+                        successfulPdfs.add(result.outputPath);
+                    } else {
+                        errors.add(String.format("URL %d: %s", i + 1, result.error));
+                    }
+                } catch (ExecutionException e) {
+                    errors.add(String.format("URL %d - Error ejecución: %s", i + 1, e.getCause().getMessage()));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    errors.add(String.format("URL %d - Interrumpido: %s", i + 1, e.getMessage()));
+                    break;
                 }
-            } catch (Exception e) {
-                errors.add("Error ejecutando tarea: " + e.getMessage());
+            }
+            
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
             }
         }
         
-        executor.shutdown();
         Duration duration = Duration.between(start, Instant.now());
         
-        return new ConversionResult(results, errors, duration.toMillis(), threadCount);
+        return new ConversionResult(successfulPdfs, errors, duration.toMillis(), threadCount);
     }
     
     public static class ConversionResult {
@@ -66,8 +88,8 @@ public class WebToPDFConverter {
         public final int threadCount;
         
         public ConversionResult(List<String> pdfs, List<String> errors, long time, int threads) {
-            this.successfulPdfs = pdfs;
-            this.errors = errors;
+            this.successfulPdfs = new ArrayList<>(pdfs);
+            this.errors = new ArrayList<>(errors);
             this.executionTimeMs = time;
             this.threadCount = threads;
         }
