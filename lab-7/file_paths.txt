@@ -1,0 +1,38 @@
+# Ejemplo para Linux/Mac:
+# /home/user/documents/archivo1.docx
+# /home/user/documents/archivo2.xlsx
+# /home/user/documents/archivo3.pptx
+# /home/user/documents/archivo4.png
+
+
+#Rutas
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/1.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/2.xlsx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/3.pptx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/4.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/5.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/6.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/7.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/8.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/9.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/10.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/11.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/12.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/13.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/14.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/15.docx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/16.xlsx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/17.xlsx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/18.xlsx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/19.xlsx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/20.xlsx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/21.xlsx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/22.xlsx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/23.pptx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/24.pptx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/25.pptx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/26.pptx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/27.pptx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/28.pptx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/29.pptx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/30.pptx
