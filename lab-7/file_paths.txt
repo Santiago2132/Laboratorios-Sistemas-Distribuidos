@@ -1,11 +1,3 @@
-# Ejemplo para Linux/Mac:
-# /home/user/documents/archivo1.docx
-# /home/user/documents/archivo2.xlsx
-# /home/user/documents/archivo3.pptx
-# /home/user/documents/archivo4.png
-
-
-#Rutas
 /home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/1.docx
 /home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/2.xlsx
 /home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/3.pptx
@@ -36,3 +28,6 @@
 /home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/28.pptx
 /home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/29.pptx
 /home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/30.pptx
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/31.png
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/32.png
+/home/santiago/Repositorios/Laboratorios-Sistemas-Distribuidos/lab-7/files/33.png
